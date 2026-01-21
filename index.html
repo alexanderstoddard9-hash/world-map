@@ -2,56 +2,67 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <title>Global Territory Manager</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; display: flex; font-family: 'Segoe UI', sans-serif; height: 100vh; background: #111; color: #eee; overflow: hidden; }
-        #sidebar { width: 320px; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; background: #222; border-right: 1px solid #444; z-index: 1000; }
-        .panel { background: #333; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #3498db; }
-        h4 { margin: 0 0 8px 0; color: #3498db; text-transform: uppercase; font-size: 0.7rem; }
-        input, .btn { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 4px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box; }
-        #country-results { max-height: 150px; overflow-y: auto; background: #000; border: 1px solid #444; margin-bottom: 8px; }
-        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #111; color: #eee; overflow: hidden; }
+        
+        /* Top Search Bar */
+        #top-nav {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; width: 400px; background: #222; padding: 10px;
+            border-radius: 8px; border: 1px solid #444; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #search-input {
+            width: 100%; padding: 10px; background: #111; border: 1px solid #555;
+            color: white; border-radius: 4px; box-sizing: border-box;
+        }
+        #search-results {
+            max-height: 200px; overflow-y: auto; background: #111; 
+            border-radius: 4px; margin-top: 5px; display: none;
+        }
+        .search-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #222; }
         .search-item:hover { background: #3498db; }
-        .search-item.selected { background: #27ae60 !important; color: white; font-weight: bold; }
-        .group-item { display: flex; align-items: center; padding: 8px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; background: #444; }
-        .group-item.active { border: 2px solid #3498db; background: #555; }
-        .color-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; border: 1px solid #fff; }
-        #map { flex-grow: 1; background: #1a1a1a; }
-        .board-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 5px 0; border-bottom: 1px solid #444; }
+
+        /* Sidebar for Groups/Leaderboard */
+        #sidebar {
+            position: absolute; left: 10px; top: 80px; bottom: 10px;
+            width: 260px; background: rgba(34, 34, 34, 0.9); padding: 15px;
+            z-index: 1000; border-radius: 8px; border: 1px solid #444;
+            display: flex; flex-direction: column; overflow-y: auto;
+        }
+        .panel { background: #333; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
+        h4 { margin: 0 0 8px 0; color: #3498db; font-size: 0.7rem; text-transform: uppercase; }
+        
+        /* Map Popup Styling */
+        .leaflet-popup-content-wrapper { background: #222; color: white; border: 1px solid #444; }
+        .leaflet-popup-tip { background: #222; }
+        .popup-menu select { width: 100%; padding: 5px; margin-top: 10px; background: #111; color: white; border: 1px solid #555; }
+        .popup-btn { background: #27ae60; color: white; border: none; padding: 8px; width: 100%; margin-top: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+
+        #map { height: 100vh; width: 100vw; background: #1a1a1a; }
+        .board-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 3px 0; }
     </style>
 </head>
 <body>
 
+<div id="top-nav">
+    <input type="text" id="search-input" placeholder="🔍 Search for a country..." onkeyup="doSearch()">
+    <div id="search-results"></div>
+</div>
+
 <div id="sidebar">
-    <div class="panel">
-        <h4>1. Find Country</h4>
-        <input type="text" id="search-input" placeholder="Loading countries..." onkeyup="filterCountries()">
-        <div id="country-results"></div>
-        <p id="sel-label" style="font-size: 0.75rem; color: #27ae60; font-weight: bold;">Selection: None</p>
-    </div>
-
-    <div class="panel">
-        <h4>2. Active Group</h4>
-        <div id="group-list"></div>
-        <button onclick="assignData()" style="background:#27ae60; color:white; border:none; padding:12px; width:100%; cursor:pointer; font-weight:bold; border-radius:4px; margin-top:5px;">Confirm & Color</button>
-    </div>
-
     <div class="panel">
         <h4>Leaderboard</h4>
         <div id="leaderboard"></div>
     </div>
-
     <div class="panel">
         <h4>Add Person</h4>
-        <input type="text" id="new-name" placeholder="Name...">
-        <input type="color" id="new-color" value="#e74c3c">
-        <button onclick="addGroup()" style="background:#3498db; border:none; width:100%; padding:8px; border-radius:4px; color:white; cursor:pointer;">+ Add Group</button>
+        <input type="text" id="new-name" placeholder="Name..." style="width:100%; background:#111; color:white; border:1px solid #555; padding:5px; margin-bottom:5px;">
+        <input type="color" id="new-color" value="#e74c3c" style="width:100%; height:30px; border:none; background:none; cursor:pointer;">
+        <button onclick="addGroup()" style="width:100%; background:#3498db; color:white; border:none; padding:8px; margin-top:5px; border-radius:4px; cursor:pointer;">Add</button>
     </div>
-
-    <div style="display:flex; gap:5px; margin-top:auto;">
-        <button onclick="exportData()" style="flex:1; background:#444; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">💾 Save</button>
-        <button onclick="clearData()" style="flex:1; background:#c0392b; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">🗑️ Reset</button>
-    </div>
+    <button onclick="clearData()" style="margin-top:auto; background:#c0392b; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Reset Map</button>
 </div>
 
 <div id="map"></div>
@@ -60,97 +71,96 @@
 <script src="https://unpkg.com/@vlad_vovk/world-geojson-low@1.0.1/dist/world.js"></script>
 
 <script>
-    let mapData = JSON.parse(localStorage.getItem('map_final_v12')) || {};
-    let groups = JSON.parse(localStorage.getItem('groups_final_v12')) || [{name: "Unassigned", color: "#888"}];
-    let activeIdx = 0;
-    let selectedCountry = null;
-    let countryList = [];
+    // HARDCODED LIST to ensure it never fails
+    const countries = ["Afghanistan", "Albania", "Algeria", "Angola", "Antarctica", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bangladesh", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herz.", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Central African Rep.", "Chad", "Chile", "China", "Colombia", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Côte d'Ivoire", "Dem. Rep. Congo", "Denmark", "Djibouti", "Dominican Rep.", "Ecuador", "Egypt", "El Salvador", "Eq. Guinea", "Eritrea", "Estonia", "Ethiopia", "Falkland Is.", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Greenland", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Mali", "Mauritania", "Mexico", "Moldova", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nepal", "Netherlands", "New Caledonia", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Puerto Rico", "Qatar", "Romania", "Russia", "Rwanda", "Saudi Arabia", "Senegal", "Serbia", "Sierra Leone", "Slovakia", "Slovenia", "Solomon Is.", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States of America", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "W. Sahara", "Yemen", "Zambia", "Zimbabwe"];
+
+    let mapData = JSON.parse(localStorage.getItem('map_v13_data')) || {};
+    let groups = JSON.parse(localStorage.getItem('map_v13_groups')) || [{name: "Unassigned", color: "#888"}];
     let geoLayer;
 
-    const map = L.map('map').setView([20, 0], 2);
+    const map = L.map('map', { zoomControl: false }).setView([20, 0], 2);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-    function getCountryStyle(feature) {
-        const assignment = mapData[feature.properties.name];
-        return {
-            fillColor: assignment ? assignment.color : '#333',
-            weight: 1, color: '#444', fillOpacity: 0.8
-        };
+    function getStyle(f) {
+        const d = mapData[f.properties.name];
+        return { fillColor: d ? d.color : '#333', weight: 1, color: '#444', fillOpacity: 0.8 };
     }
 
-    function initMap() {
+    function init() {
         if (typeof world !== 'undefined') {
-            // Get country names from the geojson file
-            countryList = world.features.map(f => f.properties.name).sort();
-            
-            geoLayer = L.geoJson(world, { 
-                style: getCountryStyle,
+            geoLayer = L.geoJson(world, {
+                style: getStyle,
                 onEachFeature: (f, l) => {
-                    l.bindTooltip(() => {
-                        const data = mapData[f.properties.name];
-                        return data ? `<b>${f.properties.name}</b><br>Group: ${data.name}` : f.properties.name;
-                    });
+                    l.on('click', (e) => openCountryMenu(f.properties.name, e.latlng));
                 }
             }).addTo(map);
-            
-            document.getElementById('search-input').placeholder = "Type country name...";
-            filterCountries();
             updateUI();
-        } else {
-            setTimeout(initMap, 500);
-        }
+        } else { setTimeout(init, 500); }
     }
 
-    function filterCountries() {
+    function doSearch() {
         const term = document.getElementById('search-input').value.toLowerCase();
-        const res = document.getElementById('country-results');
-        res.innerHTML = '';
+        const res = document.getElementById('search-results');
+        if (!term) { res.style.display = 'none'; return; }
         
-        countryList.filter(n => n.toLowerCase().includes(term)).forEach(name => {
-            const div = document.createElement('div');
-            div.className = `search-item ${selectedCountry === name ? 'selected' : ''}`;
-            div.innerText = name;
-            div.onclick = () => { 
-                selectedCountry = name; 
-                document.getElementById('sel-label').innerText = "Selected: " + name; 
-                filterCountries(); 
-            };
-            res.appendChild(div);
+        const filtered = countries.filter(c => c.toLowerCase().includes(term));
+        res.innerHTML = filtered.map(c => `<div class="search-item" onclick="selectFromSearch('${c}')">${c}</div>`).join('');
+        res.style.display = 'block';
+    }
+
+    function selectFromSearch(name) {
+        document.getElementById('search-input').value = name;
+        document.getElementById('search-results').style.display = 'none';
+        
+        // Find the country on the map and click it
+        geoLayer.eachLayer(l => {
+            if (l.feature.properties.name === name) {
+                const center = l.getBounds().getCenter();
+                map.flyTo(center, 4);
+                openCountryMenu(name, center);
+            }
         });
+    }
+
+    function openCountryMenu(name, latlng) {
+        const current = mapData[name] ? mapData[name].name : "Unassigned";
+        const options = groups.map(g => `<option value="${g.name}" ${g.name === current ? 'selected' : ''}>${g.name}</option>`).join('');
+        
+        const content = `
+            <div class="popup-menu">
+                <b style="font-size:1.1rem">${name}</b><br>
+                <small>Current Owner: ${current}</small>
+                <select id="group-select-${name.replace(/\s/g, '')}">
+                    ${options}
+                </select>
+                <button class="popup-btn" onclick="saveAssignment('${name}')">Save Changes</button>
+            </div>
+        `;
+        L.popup().setLatLng(latlng).setContent(content).openOn(map);
+    }
+
+    function saveAssignment(countryName) {
+        const select = document.getElementById(`group-select-${countryName.replace(/\s/g, '')}`);
+        const groupName = select.value;
+        const groupObj = groups.find(g => g.name === groupName);
+
+        if (groupName === "Unassigned") delete mapData[countryName];
+        else mapData[countryName] = { name: groupObj.name, color: groupObj.color };
+
+        updateUI();
+        map.closePopup();
     }
 
     function updateUI() {
-        const glist = document.getElementById('group-list');
-        glist.innerHTML = '';
-        groups.forEach((g, i) => {
-            const div = document.createElement('div');
-            div.className = `group-item ${activeIdx === i ? 'active' : ''}`;
-            div.onclick = () => { activeIdx = i; updateUI(); };
-            div.innerHTML = `<div class="color-dot" style="background:${g.color}"></div>${g.name}`;
-            glist.appendChild(div);
-        });
-
         const counts = {};
         Object.values(mapData).forEach(v => counts[v.name] = (counts[v.name] || 0) + 1);
         const board = document.getElementById('leaderboard');
         const sorted = [...groups].filter(g => g.name !== "Unassigned").sort((a,b) => (counts[b.name]||0) - (counts[a.name]||0));
         board.innerHTML = sorted.map(g => `<div class="board-row"><span><span style="color:${g.color}">●</span> ${g.name}</span><b>${counts[g.name] || 0}</b></div>`).join('');
 
-        localStorage.setItem('map_final_v12', JSON.stringify(mapData));
-        localStorage.setItem('groups_final_v12', JSON.stringify(groups));
-        if(geoLayer) geoLayer.setStyle(getCountryStyle);
-    }
-
-    function assignData() {
-        if (!selectedCountry) return alert("Click a country from the results list first!");
-        if (activeIdx === 0) delete mapData[selectedCountry];
-        else mapData[selectedCountry] = { name: groups[activeIdx].name, color: groups[activeIdx].color };
-        
-        selectedCountry = null;
-        document.getElementById('search-input').value = '';
-        document.getElementById('sel-label').innerText = "Selection: None";
-        filterCountries();
-        updateUI();
+        localStorage.setItem('map_v13_data', JSON.stringify(mapData));
+        localStorage.setItem('map_v13_groups', JSON.stringify(groups));
+        if (geoLayer) geoLayer.setStyle(getStyle);
     }
 
     function addGroup() {
@@ -162,17 +172,9 @@
         }
     }
 
-    function exportData() {
-        const blob = new Blob([JSON.stringify({mapData, groups})], {type: "application/json"});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = "map_save.json";
-        a.click();
-    }
+    function clearData() { if(confirm("Reset all?")) { localStorage.clear(); location.reload(); } }
 
-    function clearData() { if(confirm("Clear all data?")) { localStorage.clear(); location.reload(); } }
-
-    initMap();
+    init();
 </script>
 </body>
 </html>
